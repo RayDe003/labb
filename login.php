@@ -17,6 +17,7 @@ if (isset($_POST['login'])) {
     $rows = mysqli_num_rows($result);
     if ($rows == 1) {
         $_SESSION['login'] = $login;
+        header('Location: index.php');
     } else {
         echo "<div class='form'>
                   <h3>Нет лол.</h3><br/>
@@ -25,7 +26,7 @@ if (isset($_POST['login'])) {
     }
 } else {
     ?>
-    <form class="form" method="post" name="login" action="/index.php">
+    <form class="form" method="post" name="login">
         <h1 class="login-title">Авториазация</h1>
         <input type="text"  name="login" placeholder="login" autofocus="true"/>
         <input type="submit" value="Login" name="submit" class="login-button"/>
