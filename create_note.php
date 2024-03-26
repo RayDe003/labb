@@ -7,32 +7,25 @@
 <body>
 
 <?php
-global $mysqli;
 require('dbconfig.php');
 session_start();
-
-if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+$login = $_SESSION['login'];
+$userQuery = "SELECT id FROM `users` WHERE login = '$login'";
+$res = mysqli_query($mysqli, $userQuery);
+$row = mysqli_fetch_assoc($res);
+$userId = $row['id'];
+if ($_SERVER['REQUEST_METHOD'] === 'POST' && $_POST['submit'] == 'Создать заметку') {
     $title = stripslashes($_POST['title']);
     $title = mysqli_real_escape_string($mysqli, $title);
     $description = stripslashes($_POST['description']);
     $description = mysqli_real_escape_string($mysqli, $description);
 
-    // Вставляем заметку в таблицу notes
-    $query = "INSERT INTO `notes` (title, description) VALUES ('$title', '$description')";
+    $query = "INSERT INTO `notes` (title, description, created_at) VALUES ('$title', '$description', CURRENT_TIMESTAMP)";
     $result = mysqli_query($mysqli, $query);
 
     if ($result) {
-        // Получаем note_id только что созданной заметки
         $noteId = mysqli_insert_id($mysqli);
 
-        // Получаем user_id на основе данных сессии
-        $login = $_SESSION['login'];
-        $userQuery = "SELECT id FROM `users` WHERE login = '$login'";
-        $res = mysqli_query($mysqli, $userQuery);
-        $row = mysqli_fetch_assoc($res);
-        $userId = $row['id'];
-
-        // Вставляем запись в таблицу users_notes
         $usersNotesQuery = "INSERT INTO `users_notes` (user_id, note_id) VALUES ('$userId', '$noteId')";
         $usersNotesResult = mysqli_query($mysqli, $usersNotesQuery);
 
@@ -50,9 +43,32 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 <form class="form" action="" method="post" name="create_note">
     <h1 class="login-title">Создание заметки</h1>
     <input type="text" name="title" placeholder="title" required />
-    <input type="text"  name="description" placeholder="description" required>
-    <input type="submit" name="submit" value="Создать заметку" class="login-button" >
+    <textarea name="description" rows="10" cols="40" placeholder="Описание" required> </textarea>
+    <input type="submit" name="submit" value="Создать заметку" >
 </form>
+
+<?php
+$query = "SELECT n.title, n.description, n.created_at
+          FROM notes n
+          INNER JOIN users_notes un ON n.id = un.note_id
+          WHERE un.user_id = '$userId'";
+
+$result = mysqli_query($mysqli, $query);
+
+if ($result && mysqli_num_rows($result) > 0) {
+    echo "<h2>Ваши заметки:</h2>";
+    while ($row = mysqli_fetch_assoc($result)) {
+        echo "<p><strong>Заголовок:</strong> " . $row['title'] . "<br>";
+        echo "<strong> Описание:</strong> " . $row['description'] . "<br>";
+        echo "<strong> Дата  создания: </strong> " . $row['created_at'] . "</p>";
+    }
+} else {
+    echo "<p>У вас пока нет заметок.</p>";
+}
+?>
+
+
+<a href="index.php">Вернуться на страницу</a>
 
 </body>
 </html>

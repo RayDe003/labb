@@ -6,7 +6,6 @@
 </head>
 <body>
 <?php
-global $mysqli;
 require('dbconfig.php');
 if (isset($_REQUEST['login'])) {
     $login = stripslashes($_REQUEST['login']);

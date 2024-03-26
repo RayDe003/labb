@@ -6,7 +6,6 @@
 </head>
 <body>
 <?php
-global $mysqli;
 require('dbconfig.php');
 session_start();
 if (isset($_POST['login'])) {
@@ -29,7 +28,7 @@ if (isset($_POST['login'])) {
     <form class="form" method="post" name="login">
         <h1 class="login-title">Авториазация</h1>
         <input type="text"  name="login" placeholder="login" autofocus="true"/>
-        <input type="submit" value="Login" name="submit" class="login-button"/>
+        <input type="submit" value="Login" name="submit"/>
         <p class="link"><a href="registration.php">Регистрация</a></p>
     </form>
     <?php
