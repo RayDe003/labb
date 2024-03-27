@@ -1,15 +1,15 @@
 <?php
 require_once 'dbconfig.php';
 
-session_start();
-if (empty($_SESSION)) {
+if (!isset($_COOKIE['user_login']) || !isset($_COOKIE['user_id'])) {
     ?>
-        <h1>Вы не авторизировались</h1>
-    <a href="login.php">гг вп</a>
+    <h1>Вы не авторизировались</h1>
+    <a href="login.php">Войти</a>
+    <p class='link'>Нажмите сюда, <a href='registration.php'>чтобы зарегистрироваться</a></p>
     <?php
 }
 else {
-    $login = $_SESSION['login'];
+    $login = $_COOKIE['user_login'];
 
     $query = "SELECT * FROM users where login = '$login'";
     $res = mysqli_query($mysqli, $query);
@@ -23,8 +23,8 @@ else {
 
         <p> <a href="create_note.php"> Ваши заметки</a> </p>
         <p> <a href="create_meeting.php"> Ваши встречи</a> </p>
+        <p> <a href="timetable.php"> Ваше расписание</a> </p>
         <p><a href="logout.php">Выйти</a></p>
-        <p class='link'>Нажмите сюда, <a href='registration.php'>чтобы зарегистрироваться снова</a></p>
         <?php
     }
 }
