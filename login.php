@@ -7,7 +7,6 @@
 <body>
 <?php
 require('dbconfig.php');
-session_start();
 if (isset($_POST['login'])) {
     $login = stripslashes($_REQUEST['login']);
     $login = mysqli_real_escape_string($mysqli, $login);
@@ -15,7 +14,10 @@ if (isset($_POST['login'])) {
     $result = mysqli_query($mysqli, $query) or die(mysqli_connect_error());
     $rows = mysqli_num_rows($result);
     if ($rows == 1) {
-        $_SESSION['login'] = $login;
+        $user = mysqli_fetch_assoc($result);
+        $userId = $user['id'];
+        setcookie('user_login', $login, time() + (86400 * 30), "/");
+        setcookie('user_id', $userId, time() + (86400 * 30), "/");
         header('Location: index.php');
     } else {
         echo "<div class='form'>
