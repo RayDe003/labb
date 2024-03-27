@@ -1,42 +1,43 @@
-<!DOCTYPE html>
-<html>
-<head>
-    <meta charset="utf-8"/>
-    <title>loh</title>
-</head>
-<body>
-
 <?php
 require('dbconfig.php');
-session_start();
-$login = $_SESSION['login'];
-$userQuery = "SELECT id FROM `users` WHERE login = '$login'";
-$res = mysqli_query($mysqli, $userQuery);
-$row = mysqli_fetch_assoc($res);
-$userId = $row['id'];
-if ($_SERVER['REQUEST_METHOD'] === 'POST' && $_POST['submit'] == 'Создать заметку') {
-    $title = stripslashes($_POST['title']);
-    $title = mysqli_real_escape_string($mysqli, $title);
-    $description = stripslashes($_POST['description']);
-    $description = mysqli_real_escape_string($mysqli, $description);
 
-    $query = "INSERT INTO `notes` (title, description, created_at) VALUES ('$title', '$description', CURRENT_TIMESTAMP)";
-    $result = mysqli_query($mysqli, $query);
+// Получаем логин пользователя из куки
+if(isset($_COOKIE['user_login'])) {
+    $login = $_COOKIE['user_login'];
 
-    if ($result) {
-        $noteId = mysqli_insert_id($mysqli);
+    $query = "SELECT id FROM `users` WHERE login = '$login'";
+    $res = mysqli_query($mysqli, $query);
+    $row = mysqli_fetch_assoc($res);
+    $userId = $row['id'];
 
-        $usersNotesQuery = "INSERT INTO `users_notes` (user_id, note_id) VALUES ('$userId', '$noteId')";
-        $usersNotesResult = mysqli_query($mysqli, $usersNotesQuery);
+    if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['submit']) && $_POST['submit'] == 'Создать заметку') {
+        $title = stripslashes($_POST['title']);
+        $title = mysqli_real_escape_string($mysqli, $title);
+        $description = stripslashes($_POST['description']);
+        $description = mysqli_real_escape_string($mysqli, $description);
 
-        if ($usersNotesResult) {
-            echo "<p>Заметка успешно создана!</p>";
+        $query = "INSERT INTO `notes` (title, description, created_at) VALUES ('$title', '$description', CURRENT_TIMESTAMP)";
+        $result = mysqli_query($mysqli, $query);
+
+        if ($result) {
+            $noteId = mysqli_insert_id($mysqli);
+
+            $usersNotesQuery = "INSERT INTO `users_notes` (user_id, note_id) VALUES ('$userId', '$noteId')";
+            $usersNotesResult = mysqli_query($mysqli, $usersNotesQuery);
+
+            if ($usersNotesResult) {
+                echo "<p>Заметка успешно создана!</p>";
+            } else {
+                echo "<p>Ошибка при создании записи в таблице users_notes: " . mysqli_error($mysqli) . "</p>";
+            }
         } else {
-            echo "<p>Ошибка при создании записи в таблице users_notes: " . mysqli_error($mysqli) . "</p>";
+            echo "<p>Ошибка при создании заметки: " . mysqli_error($mysqli) . "</p>";
         }
-    } else {
-        echo "<p>Ошибка при создании заметки: " . mysqli_error($mysqli) . "</p>";
     }
+} else {
+    echo "<h1>Вы не авторизировались</h1>";
+    echo "<a href='login.php'>Войти</a>";
+    exit;
 }
 ?>
 
@@ -67,8 +68,4 @@ if ($result && mysqli_num_rows($result) > 0) {
 }
 ?>
 
-
 <a href="index.php">Вернуться на страницу</a>
-
-</body>
-</html>
