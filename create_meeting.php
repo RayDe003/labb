@@ -19,9 +19,12 @@ if(isset($_COOKIE['user_login'])) {
         $dateWhen = stripslashes($_POST['date_when']);
         $dateWhen = mysqli_real_escape_string($mysqli, $dateWhen);
 
+        $dayOfWeek = date('w', strtotime($dateWhen));
+
         $query = "INSERT INTO `meetings` (title, description, created_at, place_where, date_when ) 
                     VALUES ('$title', '$description', CURRENT_TIMESTAMP, '$placeWhere', '$dateWhen')";
         $result = mysqli_query($mysqli, $query);
+
 
         if ($result) {
             $meetId = mysqli_insert_id($mysqli);
@@ -29,10 +32,20 @@ if(isset($_COOKIE['user_login'])) {
             $usersMeetingsQuery = "INSERT INTO `users_meetings` (user_id, meeting_id) VALUES ('$userId', '$meetId')";
             $usersMeetingsResult = mysqli_query($mysqli, $usersMeetingsQuery);
 
+
+            $timetableQuery = "INSERT INTO `meetings_in_timetable` (meeting_id, day_id)  
+                               VALUES ('$meetId', '$dayOfWeek')";
+            $timetableResult = mysqli_query($mysqli, $timetableQuery);
+
             if ($usersMeetingsResult) {
                 echo "<p>Встреча успешно создана!</p>";
             } else {
                 echo "<p>Ошибка при создании записи в таблице users_meetings: " . mysqli_error($mysqli) . "</p>";
+            }
+            if ($timetableResult) {
+                echo "<p>Встреча успешно создана!</p>";
+            } else {
+                echo "<p>Ошибка при создании записи в таблице meetings_in_timetable: " . mysqli_error($mysqli) . "</p>";
             }
         } else {
             echo "<p>Ошибка при создании встречи: " . mysqli_error($mysqli) . "</p>";
@@ -57,6 +70,7 @@ if(isset($_COOKIE['user_login'])) {
 </form>
 
 <?php
+
 $query = "SELECT m.title, m.description, m.created_at, m.place_where, m.date_when
           FROM meetings m
           INNER JOIN users_meetings um ON m.id = um.meeting_id
