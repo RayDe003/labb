@@ -19,6 +19,7 @@ if(isset($_COOKIE['user_login'])) {
 
     if ($timetableResult && mysqli_num_rows($timetableResult) > 0) {
         echo "<h2>Ваше расписание:</h2>";
+        echo "<p> <a href='create_meeting.php'> Создать встречу</a> </p>";
 
         $prevDateWithoutTime = null;
 
