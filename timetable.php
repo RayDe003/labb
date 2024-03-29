@@ -8,46 +8,49 @@ if(isset($_COOKIE['user_login'])) {
     $row = mysqli_fetch_assoc($res);
     $userId = $row['id'];
 
-
-    $timetableQuery = "SELECT mt.*, m.title, m.description, m.date_when, m.place_where FROM meetings_in_timetable mt
+    $timetableQuery = "SELECT mt.*, m.title, m.description, DATE(m.date_when) AS date_without_time, m.place_where, t.name_day_of_week, m.date_when
+                      FROM meetings_in_timetable mt
                       INNER JOIN users_meetings um ON mt.meeting_id = um.meeting_id
                       INNER JOIN meetings m ON mt.meeting_id = m.id
+                      INNER JOIN timetable t ON mt.day_id = t.id
                       WHERE um.user_id = '$userId'
-                      ";
+                      ORDER BY m.date_when";
     $timetableResult = mysqli_query($mysqli, $timetableQuery);
 
     if ($timetableResult && mysqli_num_rows($timetableResult) > 0) {
-        echo "<h2>Ваше расписание на неделю:</h2>";
+        echo "<h2>Ваше расписание:</h2>";
+
+        $prevDateWithoutTime = null;
+
         while ($row = mysqli_fetch_assoc($timetableResult)) {
             $meetingTitle = $row['title'];
             $meetingDescription = $row['description'];
             $meetingPlace = $row['place_where'];
-            $dayOfWeek = $row['date_when'];
-            $dayNameQuery = "SELECT DAYOFWEEK (date_when)-1, t.name_day_of_week FROM meetings m
-                            INNER JOIN meetings_in_timetable mit ON mit.meeting_id = m.id
-                            INNER JOIN timetable t ON t.id = mit.day_id";
-            $dayName = mysqli_query($mysqli, $dayNameQuery);
-            $row = mysqli_fetch_assoc($dayName);
-            $aaa = $row['name_day_of_week'];
-            echo "<h3>$aaa</h3>";
+            $dateWithoutTime = $row['date_without_time'];
+            $dayName = $row['name_day_of_week'];
+            $dateWhen = $row['date_when'];
+
+            if ($dateWithoutTime !== $prevDateWithoutTime) {
+                echo "<h3>$dayName, $dateWithoutTime</h3>";
+                $prevDateWithoutTime = $dateWithoutTime;
+            }
+
             echo "<p><strong>Встреча:</strong> $meetingTitle</p>";
             echo "<p><strong>Описание:</strong> $meetingDescription</p>";
-            echo "<p><strong>Дата встречи:</strong> $dayOfWeek</p> <br>";
-
+            echo "<p><strong>Место встречи: </strong> $meetingPlace <br> ";
+            echo "<p><strong>Дата встречи:</strong> $dateWhen</p> <br>";
         }
+
     } else {
         echo "<p>У вас нет запланированных встреч на этой неделе.</p>";
     }
-
     ?>
-    <a href = "index.php" > Вернуться на страницу </a >
-<?php
-    }
-else {
+    <a href="index.php">Вернуться на страницу</a>
+    <?php
+} else {
     echo "<h1>Вы не авторизировались</h1>";
     echo "<a href='login.php'>Войти</a>";
     exit;
 }
 ?>
-</body>
-</html>
+
