@@ -37,16 +37,13 @@ if(isset($_COOKIE['user_login'])) {
                                VALUES ('$meetId', '$dayOfWeek')";
             $timetableResult = mysqli_query($mysqli, $timetableQuery);
 
-            if ($usersMeetingsResult) {
+            if ($usersMeetingsResult && $timetableResult) {
                 echo "<p>Встреча успешно создана!</p>";
             } else {
                 echo "<p>Ошибка при создании записи в таблице users_meetings: " . mysqli_error($mysqli) . "</p>";
-            }
-            if ($timetableResult) {
-                echo "<p>Встреча успешно создана!</p>";
-            } else {
                 echo "<p>Ошибка при создании записи в таблице meetings_in_timetable: " . mysqli_error($mysqli) . "</p>";
             }
+
         } else {
             echo "<p>Ошибка при создании встречи: " . mysqli_error($mysqli) . "</p>";
         }
@@ -67,6 +64,14 @@ if(isset($_COOKIE['user_login'])) {
 
 
     <input type="submit" name="submit" value="Создать встречу" >
+</form>
+
+
+<form method="post" action="search.php?go" id="search_form">
+    <h1> Найти встречу по названию </h1>
+    <input type="text" name="title">
+    <input  type="submit" name="submit" value="Поиск">
+
 </form>
 
 <?php
