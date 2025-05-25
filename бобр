@@ -1,0 +1,85 @@
+###Card###
+['published_year', 'compare', 'compareValue' => 0, 'operator' => '>=', 'type' => 'number'],
+
+public function getCardBackgroundClass()
+    {
+        if ($this->is_archived == 'archived') {
+            return 'text-bg-warning';
+        }
+
+        switch ($this->is_published) {
+            case 'unpublished': return 'text-bg-secondary';
+            case 'published': return 'text-bg-success';
+            case 'cancelled': return 'text-bg-danger';
+        }
+    }
+
+###радиокнопка###
+<?= $form->field($model, 'sharing')->radioList(['ready_to_share' => 'Готов поделиться', 'want_to_library' => 'Хочу в свою библиотеку',], ['class' => 'm-2', 'separator' => '<br>'])->label(false) ?>
+
+###CardController###
+public function actionArchive($id)
+    {
+        $model = $this->findModel($id);
+
+        $model->is_archived = 'archived';
+        $model->is_published = 'unpublished';
+
+        $model->save();
+
+        \Yii::$app->session->setFlash('success', 'Карточка успешно помещена в архив');
+
+        return $this->redirect(['my']);
+    }
+
+###formAdmin###
+<ul class="list-group list-group-flush">
+        <li class="list-group-item">Автор карточки: <?= $model->user->FIO ?></li>
+        <li class="list-group-item">Автор: <?= $model->author ?></li>
+        <li class="list-group-item"><?= $model->getSharing() ?></li>
+    </ul>
+
+###my###
+   <?= ListView::widget([
+        'dataProvider' => $dataProvider,
+        'itemView' => 'card_view',
+        'options' => ['class' => 'row g-4'],
+        'itemOptions' => ['class' => 'col-md-4'],
+    ]); ?>
+
+###cardView###
+<div class="card <?= $model->getCardBackgroundClass() ?>">
+    <div class="card-body">
+        <h5 class="card-title"><?= $model->title ?></h5>
+</div>
+<ul class="list-group list-group-flush">
+    <li class="list-group-item">Автор: <?= $model->author ?></li>
+    <li class="list-group-item"><?= $model->getSharing() ?></li>
+    <?php
+    if ($model->publisher) echo "<li class='list-group-item'>Издатель: $model->publisher</li>";
+    if ($model->published_year) echo "<li class='list-group-item'>Год издания: $model->published_year</li>";
+    if ($model->is_archived) {
+        $archive = $model->getArchive();
+        echo "<li class='list-group-item'>$archive</li>";
+    }
+    if ($model->is_published) {
+        $publish = $model->getPublish();
+        echo "<li class='list-group-item'>$publish</li>";
+    }
+    if ($model->cover_id) {
+        $binding = $model->cover->cover;
+        echo "<li class='list-group-item'>Переплет: $binding</li>";
+    }
+    if ($model->condition_id) {
+        $condition = $model->condition->condition;
+        echo "<li class='list-group-item'>Состояние: $condition</li>";
+    }
+    ?>
+</ul>
+<?php if ($model->is_archived == 'not_archived'): ?>
+    <div class="card-body">
+        <?= Html::a('Удалить (в архив)', ['archive', 'id' => $model->id], ['class' => 'btn btn-danger']) ?>
+    </div>
+<?php endif; ?>
+</div>
+
