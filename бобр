@@ -14,6 +14,15 @@ public function getCardBackgroundClass()
         }
     }
 
+ public function getPublish()
+    {
+        switch ($this->is_published) {
+            case 'published': return 'Опубликована';
+            case 'unpublished': return 'Не опубликована';
+            case 'cancelled': return "Отклонена. Причина: $this->cancellation_reason";
+        }
+    }
+
 ###радиокнопка###
 <?= $form->field($model, 'sharing')->radioList(['ready_to_share' => 'Готов поделиться', 'want_to_library' => 'Хочу в свою библиотеку',], ['class' => 'm-2', 'separator' => '<br>'])->label(false) ?>
 
