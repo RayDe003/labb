@@ -1,309 +1,310 @@
-###общее### 
-вывести только своё:
-'query' => Card::find()->where(['user_id' => \Yii::$app->user->id]),
 
-адаптивная таблица:
-'options' => ['class' => 'table-responsive'],
-
-атрибуты задавать:
-             [
-                'attribute' => 'user_fio',
-                'value' => 'user.full_name',
-            ],
-
-подставить id .pthf
-['user_id', 'default', 'value'=> Yii::$app->user->identity->id],
-
-
-обязательная причина отмены
-['cancellation_reason', 'required', 'when' => function ($model) {
-       return $model->is_published == 'cancelled';
-   }, 'whenClient' => "function (attribute, value) {
-   return $('#publish').val() == 'cancelled';}"]
-];
-
-объединение строк для отмены
-case 'cancelled': return "Отклонена. Причина: $this->cancellation_reason";
-
-картинка
-<?= Html::img('@web/images/image.png', ['alt' => 'Image', 'class' => 'img-thumbnail']) ?>
-
-css
-#main {
-    animation: slideFormRight 0.3s ease-out
-}
-
-@keyframes slideFormRight {
-    from { transform: translateX(30px); opacity: 0}
-    to { transform: translateX(0px); opacity: 1}
-}
-
-.pagination{
-    display: flex;
-    flex-direction: row;
-    justify-content: space-evenly;
-}
-
-.picture{
-    justify-content: center;
-    display: grid;
-}
-
-------------------------
-###Card###
-год положительный
-['published_year', 'compare', 'compareValue' => 0, 'operator' => '>=', 'type' => 'number'],
-
-формирование вида карточки
-public function getCardBackgroundClass()
-    {
-        if ($this->is_archived == 'archived') {
-            return 'text-bg-warning';
-        }
-
-        switch ($this->is_published) {
-            case 'unpublished': return 'text-bg-secondary';
-            case 'published': return 'text-bg-success';
-            case 'cancelled': return 'text-bg-danger';
-        }
-    }
-
-формирвоание статуса карточки с причиной отмены
- public function getPublish()
-    {
-        switch ($this->is_published) {
-            case 'published': return 'Опубликована';
-            case 'unpublished': return 'Не опубликована';
-            case 'cancelled': return "Отклонена. Причина: $this->cancellation_reason";
-        }
-    }
-
-###радиокнопка###
-<?= $form->field($model, 'sharing')->radioList(['ready_to_share' => 'Готов поделиться', 'want_to_library' => 'Хочу в свою библиотеку',], ['class' => 'm-2', 'separator' => '<br>'])->label(false) ?>
-
-###CardController###
-добалвение карточки в архив
-public function actionArchive($id)
-    {
-        $model = $this->findModel($id);
-
-        $model->is_archived = 'archived';
-        $model->is_published = 'unpublished';
-
-        $model->save();
-
-        \Yii::$app->session->setFlash('success', 'Карточка успешно помещена в архив');
-
-        return $this->redirect(['my']);
-    }
-
-оставить отзыв
-public function actionCreate()
-    {
-        $model = new Review();
-
-        if ($this->request->isPost) {
-            if ($model->load($this->request->post()) && $model->save()) {
-                \Yii::$app->session->setFlash('success', 'Благодарим Вас за оставленный отзыв!');
-                return $this->redirect(['card/my']);
-            }
-        } else {
-            $model->loadDefaultValues();
-        }
-
-        return $this->render('create', [
-            'model' => $model,
-        ]);
-    }
-###formAdmin###
-красивый вывод для просмотра карточки на update
-   <ul class="list-group list-group-flush">
-        <li class="list-group-item">Автор карточки: <?= $model->user->full_name ?></li>
-    <li class="list-group-item">Автор: <?= $model->author ?></li>
-    <li class="list-group-item"><?= $model->getSharing() ?></li>
-    </ul>
-
-    <?= $this->render('_updform', [
-        'model' => $model,
-    ]) ?>
-
-###updForm###
-<?php
-
-use yii\helpers\Html;
-use yii\widgets\ActiveForm;
-
-/** @var yii\web\View $this */
-/** @var app\models\Request $model */
-/** @var yii\widgets\ActiveForm $form */
-?>
-
-<div class="request-form">
-
-    <?php $form = ActiveForm::begin(); ?>
-
-    <?= $form->field($model, 'status')->dropDownList([ 'in_progress' => 'В работе', 'cancelled' => 'Отменена', 'completed' => 'Выполнено']) ?>
-
-    <div class="form-group">
-        <?= Html::submitButton('Сохранить', ['class' => 'btn btn-success']) ?>
-    </div>
-
-    <?php ActiveForm::end(); ?>
-
-</div>
-
-###my###
-для отображения вида карточек
-   <?= ListView::widget([
-        'dataProvider' => $dataProvider,
-        'itemView' => 'card_view',
-        'options' => ['class' => 'row g-4'],
-        'itemOptions' => ['class' => 'col-md-4'],
-    ]); ?>
-
-###cardView###
-вид карточек
-<div class="card <?= $model->getCardBackgroundClass() ?>">
-    <div class="card-body">
-        <h5 class="card-title"><?= $model->title ?></h5>
-</div>
-<ul class="list-group list-group-flush">
-    <li class="list-group-item">Автор: <?= $model->author ?></li>
-    <li class="list-group-item"><?= $model->getSharing() ?></li>
-    <?php
-    if ($model->publisher) echo "<li class='list-group-item'>Издатель: $model->publisher</li>";
-    if ($model->published_year) echo "<li class='list-group-item'>Год издания: $model->published_year</li>";
-    if ($model->is_archived) {
-        $archive = $model->getArchive();
-        echo "<li class='list-group-item'>$archive</li>";
-    }
-    if ($model->is_published) {
-        $publish = $model->getPublish();
-        echo "<li class='list-group-item'>$publish</li>";
-    }
-    if ($model->cover_id) {
-        $binding = $model->cover->cover;
-        echo "<li class='list-group-item'>Переплет: $binding</li>";
-    }
-    if ($model->condition_id) {
-        $condition = $model->condition->condition;
-        echo "<li class='list-group-item'>Состояние: $condition</li>";
-    }
-    ?>
-</ul>
-<?php if ($model->is_archived == 'not_archived'): ?>
-    <div class="card-body">
-        <?= Html::a('Удалить (в архив)', ['archive', 'id' => $model->id], ['class' => 'btn btn-danger']) ?>
-    </div>
-<?php endif; ?>
-</div>
-
-______
-другая заявка 
-['other_request','safe'],
-['custom_service_description', 'required',
-    'when' => function ($model) {
-        return $model->other_request;
-    },
-    'whenClient' => "function(attribute, value) {
-        return $(`#request-other_request`).is(':checked');
-    }",
-    'message' => 'Заполните опсиание услуги'
-]
-
-
------
-###js###
-вывоз мусора 
-
-во вьюхе создания
-  <p id="cost_up">Стоимость заказа будет увеличена, поскольку требуется утилизация</p>
-
-js
-function garbageToggler() {
-    if ($('#cargo_type option:selected').text() == 'Мусор') {
-        $('#cost_up').show('fade')
-    } else {
-        $('#cost_up').hide('fade')
-    }
-}
-
-garbageToggler()
-
-$('#cargo_type').on('change', garbageToggler)
-
-отменен
-function toggle() {
-    if ($('#published').val() == 'cancelled') {
-        $('.field-card-cancellation_reason').show('fade')
-    } else {
-        $('.field-card-cancellation_reason').hide('fade')
-    }
-}
-
-toggle()
-
-$('#published').on('change', toggle)
-
-отмена + другой сервис 
-function toggle() {
-    if ($('#is_other_service').is(':checked')) {
-        $('.field-request-service_id').hide('fade')
-        $('.field-request-other_service_description').show('fade')
-    } else {
-        $('.field-request-service_id').show('fade')
-        $('.field-request-other_service_description').hide('fade')
-    }
-}
-
-function cancellationToggle() {
-    if ($('#status_select').val() == 'cancelled') {
-        $('.field-request-cancellation_reason').show('fade')
-    } else {
-        $('.field-request-cancellation_reason').hide('fade')
-    }
-}
-
-toggle()
-cancellationToggle()
-
-$('#is_other_service').on('change', toggle)
-$('#status_select').on('change', cancellationToggle)
-
-
-_______
-разграничение доступа к карточкам 
-public function behaviors()
-    {
-        return array_merge(
-            parent::behaviors(),
-            [
-                'verbs' => [
-                    'class' => VerbFilter::className(),
-                    'actions' => [
-                        'delete' => ['POST'],
-                    ],
-                ],
-                'access' => [
-                    'class' => AccessControl::class,
-                    'only' => ['my', 'create', 'update', 'index'],
-                    'rules' => [
-                        [
-                            'allow' => true,
-                            'actions' => ['my', 'create'],
-                            'matchCallback' => function ($rule, $action) {
-                                return !Yii::$app->user->isGuest && !Yii::$app->user->identity->isAdmin();
-                            }
-                        ],
-                        [
-                            'allow' => true,
-                            'actions' => ['index', 'update'],
-                            'matchCallback' => function ($rule, $action) {
-                                return !Yii::$app->user->isGuest && Yii::$app->user->identity->isAdmin();
-                            }
-                        ],
-                    ],
-                ],
-            ]
-        );
-    }
+####общее### 
+#вывести только своё:
+#'query' => Card::find()->where(['user_id' => \Yii::$app->user->id]),
+#
+#адаптивная таблица:
+#'options' => ['class' => 'table-responsive'],
+#
+#атрибуты задавать:
+#             [
+#                'attribute' => 'user_fio',
+#                'value' => 'user.full_name',
+#            ],
+#
+#подставить id .pthf
+#['user_id', 'default', 'value'=> Yii::$app->user->identity->id],
+#
+#
+#обязательная причина отмены
+#['cancellation_reason', 'required', 'when' => function ($model) {
+#       return $model->is_published == 'cancelled';
+#   }, 'whenClient' => "function (attribute, value) {
+#   return $('#publish').val() == 'cancelled';}"]
+#];
+#
+#объединение строк для отмены
+#case 'cancelled': return "Отклонена. Причина: $this->cancellation_reason";
+#
+#картинка
+#<?= Html::img('@web/images/image.png', ['alt' => 'Image', 'class' => 'img-thumbnail']) ?>
+#
+#css
+##main {
+#    animation: slideFormRight 0.3s ease-out
+#}
+#
+#@keyframes slideFormRight {
+#    from { transform: translateX(30px); opacity: 0}
+#    to { transform: translateX(0px); opacity: 1}
+#}
+#
+#.pagination{
+#    display: flex;
+#    flex-direction: row;
+#    justify-content: space-evenly;
+#}
+#
+#.picture{
+#    justify-content: center;
+#    display: grid;
+#}
+#
+#------------------------
+####Card###
+#год положительный
+#['published_year', 'compare', 'compareValue' => 0, 'operator' => '>=', 'type' => 'number'],
+#
+#формирование вида карточки
+#public function getCardBackgroundClass()
+#    {
+#        if ($this->is_archived == 'archived') {
+#            return 'text-bg-warning';
+#        }
+#
+#        switch ($this->is_published) {
+#            case 'unpublished': return 'text-bg-secondary';
+#            case 'published': return 'text-bg-success';
+#            case 'cancelled': return 'text-bg-danger';
+#        }
+#    }
+#
+#формирвоание статуса карточки с причиной отмены
+# public function getPublish()
+#    {
+#        switch ($this->is_published) {
+#            case 'published': return 'Опубликована';
+#            case 'unpublished': return 'Не опубликована';
+#            case 'cancelled': return "Отклонена. Причина: $this->cancellation_reason";
+#        }
+#    }
+#
+####радиокнопка###
+#<?= $form->field($model, 'sharing')->radioList(['ready_to_share' => 'Готов поделиться', 'want_to_library' => 'Хочу в свою библиотеку',], ['class' => 'm-2', 'separator' => '<br>'])->label(false) ?>
+#
+####CardController###
+#добалвение карточки в архив
+#public function actionArchive($id)
+#    {
+#        $model = $this->findModel($id);
+#
+#        $model->is_archived = 'archived';
+#        $model->is_published = 'unpublished';
+#
+#        $model->save();
+#
+#        \Yii::$app->session->setFlash('success', 'Карточка успешно помещена в архив');
+#
+#        return $this->redirect(['my']);
+#    }
+#
+#оставить отзыв
+#public function actionCreate()
+#    {
+#        $model = new Review();
+#
+#        if ($this->request->isPost) {
+#            if ($model->load($this->request->post()) && $model->save()) {
+#                \Yii::$app->session->setFlash('success', 'Благодарим Вас за оставленный отзыв!');
+#                return $this->redirect(['card/my']);
+#            }
+#        } else {
+#            $model->loadDefaultValues();
+#        }
+#
+#        return $this->render('create', [
+#            'model' => $model,
+#        ]);
+#    }
+####formAdmin###
+#красивый вывод для просмотра карточки на update
+#   <ul class="list-group list-group-flush">
+#        <li class="list-group-item">Автор карточки: <?= $model->user->full_name ?></li>
+#    <li class="list-group-item">Автор: <?= $model->author ?></li>
+#    <li class="list-group-item"><?= $model->getSharing() ?></li>
+#    </ul>
+#
+#    <?= $this->render('_updform', [
+#        'model' => $model,
+#    ]) ?>
+#
+####updForm###
+#<?php
+#
+#use yii\helpers\Html;
+#use yii\widgets\ActiveForm;
+#
+#/** @var yii\web\View $this */
+#/** @var app\models\Request $model */
+#/** @var yii\widgets\ActiveForm $form */
+#?>
+#
+#<div class="request-form">
+#
+#    <?php $form = ActiveForm::begin(); ?>
+#
+#    <?= $form->field($model, 'status')->dropDownList([ 'in_progress' => 'В работе', 'cancelled' => 'Отменена', 'completed' => 'Выполнено']) ?>
+#
+#    <div class="form-group">
+#        <?= Html::submitButton('Сохранить', ['class' => 'btn btn-success']) ?>
+#    </div>
+#
+#    <?php ActiveForm::end(); ?>
+#
+#</div>
+#
+####my###
+#для отображения вида карточек
+#   <?= ListView::widget([
+#        'dataProvider' => $dataProvider,
+#        'itemView' => 'card_view',
+#        'options' => ['class' => 'row g-4'],
+#        'itemOptions' => ['class' => 'col-md-4'],
+#    ]); ?>
+#
+####cardView###
+#вид карточек
+#<div class="card <?= $model->getCardBackgroundClass() ?>">
+#    <div class="card-body">
+#        <h5 class="card-title"><?= $model->title ?></h5>
+#</div>
+#<ul class="list-group list-group-flush">
+#    <li class="list-group-item">Автор: <?= $model->author ?></li>
+#    <li class="list-group-item"><?= $model->getSharing() ?></li>
+#    <?php
+#    if ($model->publisher) echo "<li class='list-group-item'>Издатель: $model->publisher</li>";
+#    if ($model->published_year) echo "<li class='list-group-item'>Год издания: $model->published_year</li>";
+#    if ($model->is_archived) {
+#        $archive = $model->getArchive();
+#        echo "<li class='list-group-item'>$archive</li>";
+#    }
+#    if ($model->is_published) {
+#        $publish = $model->getPublish();
+#        echo "<li class='list-group-item'>$publish</li>";
+#    }
+#    if ($model->cover_id) {
+#        $binding = $model->cover->cover;
+#        echo "<li class='list-group-item'>Переплет: $binding</li>";
+#    }
+#    if ($model->condition_id) {
+#        $condition = $model->condition->condition;
+#        echo "<li class='list-group-item'>Состояние: $condition</li>";
+#    }
+#    ?>
+#</ul>
+#<?php if ($model->is_archived == 'not_archived'): ?>
+#    <div class="card-body">
+#        <?= Html::a('Удалить (в архив)', ['archive', 'id' => $model->id], ['class' => 'btn btn-danger']) ?>
+#    </div>
+#<?php endif; ?>
+#</div>
+#
+#______
+#другая заявка 
+#['other_request','safe'],
+#['custom_service_description', 'required',
+#    'when' => function ($model) {
+#        return $model->other_request;
+#    },
+#    'whenClient' => "function(attribute, value) {
+#        return $(`#request-other_request`).is(':checked');
+#    }",
+#    'message' => 'Заполните опсиание услуги'
+#]
+#
+#
+#-----
+####js###
+#вывоз мусора 
+#
+#во вьюхе создания
+#  <p id="cost_up">Стоимость заказа будет увеличена, поскольку требуется утилизация</p>
+#
+#js
+#function garbageToggler() {
+#    if ($('#cargo_type option:selected').text() == 'Мусор') {
+#        $('#cost_up').show('fade')
+#    } else {
+#        $('#cost_up').hide('fade')
+#    }
+#}
+#
+#garbageToggler()
+#
+#$('#cargo_type').on('change', garbageToggler)
+#
+#отменен
+#function toggle() {
+#    if ($('#published').val() == 'cancelled') {
+#        $('.field-card-cancellation_reason').show('fade')
+#    } else {
+#        $('.field-card-cancellation_reason').hide('fade')
+#    }
+#}
+#
+#toggle()
+#
+#$('#published').on('change', toggle)
+#
+#отмена + другой сервис 
+#function toggle() {
+#    if ($('#is_other_service').is(':checked')) {
+#        $('.field-request-service_id').hide('fade')
+#        $('.field-request-other_service_description').show('fade')
+#    } else {
+#        $('.field-request-service_id').show('fade')
+#        $('.field-request-other_service_description').hide('fade')
+#    }
+#}
+#
+#function cancellationToggle() {
+#    if ($('#status_select').val() == 'cancelled') {
+#        $('.field-request-cancellation_reason').show('fade')
+#    } else {
+#        $('.field-request-cancellation_reason').hide('fade')
+#    }
+#}
+#
+#toggle()
+#cancellationToggle()
+#
+#$('#is_other_service').on('change', toggle)
+#$('#status_select').on('change', cancellationToggle)
+#
+#
+#_______
+#разграничение доступа к карточкам 
+#public function behaviors()
+#    {
+#        return array_merge(
+#            parent::behaviors(),
+#            [
+#                'verbs' => [
+#                    'class' => VerbFilter::className(),
+#                    'actions' => [
+#                        'delete' => ['POST'],
+#                    ],
+#                ],
+#                'access' => [
+#                    'class' => AccessControl::class,
+#                    'only' => ['my', 'create', 'update', 'index'],
+#                    'rules' => [
+#                        [
+#                            'allow' => true,
+#                            'actions' => ['my', 'create'],
+#                            'matchCallback' => function ($rule, $action) {
+#                                return !Yii::$app->user->isGuest && !Yii::$app->user->identity->isAdmin();
+#                            }
+#                        ],
+#                        [
+#                            'allow' => true,
+#                            'actions' => ['index', 'update'],
+#                            'matchCallback' => function ($rule, $action) {
+#                                return !Yii::$app->user->isGuest && Yii::$app->user->identity->isAdmin();
+#                            }
+#                        ],
+#                    ],
+#                ],
+#            ]
+#        );
+#    }
