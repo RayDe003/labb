@@ -1,0 +1,108 @@
+\\\\\request controller
+    public function behaviors()
+    {
+        return array_merge(
+            parent::behaviors(),
+            [
+                'verbs' => [
+                    'class' => VerbFilter::className(),
+                    'actions' => [
+                        'delete' => ['POST'],
+                    ],
+                ],
+                'access' => [
+                    'class' => AccessControl::class,
+                    'only' => ['my', 'create', 'update', 'index'],
+                    'rules' => [
+                        [
+                            'allow' => true,
+                            'actions' => ['my', 'create'],
+                            'matchCallback' => function ($rule, $action) {
+                                return !Yii::$app->user->isGuest && !Yii::$app->user->identity->isAdmin();
+                            }
+                        ],
+                        [
+                            'allow' => true,
+                            'actions' => ['index', 'update'],
+                            'matchCallback' => function ($rule, $action) {
+                                return !Yii::$app->user->isGuest && Yii::$app->user->identity->isAdmin();
+                            }
+                        ],
+                    ],
+                ],
+            ]
+        );
+    }
+
+public function actionMy()
+    {
+        $dataProvider = new ActiveDataProvider([
+            'query' => Request::find()->where(['user_id' => \Yii::$app->user->id]),
+        ]);
+        return $this->render('my', [
+            'dataProvider' => $dataProvider,
+        ]);
+    }
+public function actionCreate()
+    {
+        $model = new Request();
+
+        if ($this->request->isPost) {
+            if ($model->load($this->request->post()) && $model->save()) {
+                \Yii::$app->session->setFlash('success', 'Столик успешно забронирован');
+                return $this->redirect(['my']);
+            }
+        } else {
+            $model->loadDefaultValues();
+        }
+
+        return $this->render('create', [
+            'model' => $model,
+        ]);
+    }
+
+ public function actionUpdate($id)
+    {
+        $model = $this->findModel($id);
+
+        if ($this->request->isPost && $model->load($this->request->post()) && $model->save()) {
+            \Yii::$app->session->setFlash('success', 'Изменения сохранены');
+            return $this->redirect(['index']);
+        }
+
+        return $this->render('update', [
+            'model' => $model,
+        ]);
+    }
+
+
+\\\\\ request.php
+ ['datetime', 'compare',
+                'compareValue' => date('Y-m-d/TH:i'),
+                'operator' => '>=',
+                'type' => 'string',
+                'message' => 'Бронирование можно сделать на сегодняшнюю и предстоящие даты'],
+
+    public function getBackgroundClass()
+    {
+        switch ($this->status) {
+            case 'new': return 'text-bg-secondary';
+            case 'completed': return 'text-bg-success';
+            case 'cancelled': return 'text-bg-danger';
+        }
+    }
+
+    public function getStatusTextClass()
+    {
+        switch ($this->status) {
+            case 'new': return ['class' => 'text text-secondary'];
+            case 'completed': return ['class' => 'text text-success'];
+            case 'cancelled': return ['class' => 'text text-danger'];
+        }
+    }
+
+\\\\ user.php
+ public function getFullName()
+    {
+        return $this->name . ' ' . $this->surname;
+    }
